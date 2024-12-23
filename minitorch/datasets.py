@@ -5,6 +5,7 @@ from typing import List, Tuple
 
 
 def make_pts(N: int) -> List[Tuple[float, float]]:
+    """Randomly generate N points in the unit square."""
     X = []
     for i in range(N):
         x_1 = random.random()
@@ -21,6 +22,10 @@ class Graph:
 
 
 def simple(N: int) -> Graph:
+    """Generate a simple 3D graph of N random points with height values of 0 or
+    1 inside the unit square, wherein x_1 = 0.5 is the dividing plane between
+    points with y values of 0 and 1.
+    """
     X = make_pts(N)
     y = []
     for x_1, x_2 in X:
@@ -30,6 +35,10 @@ def simple(N: int) -> Graph:
 
 
 def diag(N: int) -> Graph:
+    """Generate a 3D graph of N random points with height values of 0 or 1
+    inside the unit square, wherein x_1 + x_2 = 0.5 is the dividing plane
+    between points with y values of 0 and 1.
+    """
     X = make_pts(N)
     y = []
     for x_1, x_2 in X:
@@ -39,6 +48,10 @@ def diag(N: int) -> Graph:
 
 
 def split(N: int) -> Graph:
+    """Generate a 3D graph of N random points with height values of 0 or 1
+    inside the unit square, where all points have y = 0 for 0.2 <= x_1 <= 0.8
+    and have y = 1 otherwise.
+    """
     X = make_pts(N)
     y = []
     for x_1, x_2 in X:
@@ -48,6 +61,11 @@ def split(N: int) -> Graph:
 
 
 def xor(N: int) -> Graph:
+    """Generate a 3D graph of N random points with height values of 0 or 1
+    inside the unit square, where points in the upper left and lower right
+    quadrants of the unit square have y values of 1, and points in the lower
+    left and upper right quadrants of the unit square have y values of 0.
+    """
     X = make_pts(N)
     y = []
     for x_1, x_2 in X:
@@ -57,6 +75,10 @@ def xor(N: int) -> Graph:
 
 
 def circle(N: int) -> Graph:
+    """Generate a 3D graph of N random points in the unit square, with height
+    values of 1 outside a circle with radius 0.1 centered at (0.5, 0.5), and
+    height values of 0 inside of that circle.
+    """
     X = make_pts(N)
     y = []
     for x_1, x_2 in X:
@@ -67,6 +89,10 @@ def circle(N: int) -> Graph:
 
 
 def spiral(N: int) -> Graph:
+    """Generate a 3D graph of random points with height values of 0 or 1, where
+    each point's position on or off of a spiral determines its height.
+    """
+
     def x(t: float) -> float:
         return t * math.cos(t) / 20.0
 

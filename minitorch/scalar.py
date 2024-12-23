@@ -9,6 +9,7 @@ from dataclasses import field
 from .autodiff import Context, Variable, backpropagate, central_difference
 from .scalar_functions import (
     EQ,
+    GT,
     LT,
     Add,
     Exp,
@@ -19,6 +20,7 @@ from .scalar_functions import (
     ReLU,
     ScalarFunction,
     Sigmoid,
+    Sub,
 )
 
 ScalarLike = Union[float, int, "Scalar"]
@@ -85,11 +87,52 @@ class Scalar:
     def __bool__(self) -> bool:
         return bool(self.data)
 
+    def __add__(self, b: ScalarLike) -> Scalar:
+        return Add.apply(self, b)
+
+    def __eq__(self, b: ScalarLike) -> Scalar:
+        return EQ.apply(self, b)
+
+    def __gt__(self, b: ScalarLike) -> Scalar:
+        return GT.apply(self, b)
+
+    def __lt__(self, b: ScalarLike) -> Scalar:
+        return LT.apply(self, b)
+
+    def __neg__(self) -> Scalar:
+        return Neg.apply(self)
+
+    def __rsub__(self, b: ScalarLike) -> Scalar:
+        return Sub.apply(self, b)
+
+    def __sub__(self, b: ScalarLike) -> Scalar:
+        return Sub.apply(self, b)
+
     def __radd__(self, b: ScalarLike) -> Scalar:
         return self + b
 
     def __rmul__(self, b: ScalarLike) -> Scalar:
         return self * b
+
+    def exp(self) -> Scalar:
+        """Calculate e to the power of x, i.e. the natural exponential function."""
+        return Exp.apply(self)
+
+    def inv(self) -> Scalar:
+        """Implement the inverse function."""
+        return Inv.apply(self)
+
+    def log(self) -> Scalar:
+        """Implement the natural logarithm function."""
+        return Log.apply(self)
+
+    def relu(self) -> Scalar:
+        """Implement the relu function"""
+        return ReLU.apply(self)
+
+    def sigmoid(self) -> Scalar:
+        """Implement the sigmoid function"""
+        return Sigmoid.apply(self)
 
     # Variable elements for backprop
 
@@ -112,21 +155,24 @@ class Scalar:
         return self.history is not None and self.history.last_fn is None
 
     def is_constant(self) -> bool:
+        """True if this variable is a constant (i.e. not a learned parameter)."""
         return self.history is None
 
     @property
     def parents(self) -> Iterable[Variable]:
-        """Get the variables used to create this one."""
+        """Returns the parent variables in the computation graph."""
         assert self.history is not None
         return self.history.inputs
 
     def chain_rule(self, d_output: Any) -> Iterable[Tuple[Variable, Any]]:
+        """Applies the chain rule to backpropagate the gradients of the output relative to the input, throughout the computation graph."""
         h = self.history
         assert h is not None
         assert h.last_fn is not None
         assert h.ctx is not None
 
-        raise NotImplementedError("Need to include this file from past assignment.")
+        x = h.last_fn.backward(h.ctx, d_output)  # pyright: ignore
+        return list(zip(h.inputs, x))
 
     def backward(self, d_output: Optional[float] = None) -> None:
         """Calls autodiff to fill in the derivatives for the history of this object.
@@ -141,17 +187,15 @@ class Scalar:
             d_output = 1.0
         backpropagate(self, d_output)
 
-    raise NotImplementedError("Need to include this file from past assignment.")
-
 
 def derivative_check(f: Any, *scalars: Scalar) -> None:
     """Checks that autodiff works on a python function.
     Asserts False if derivative is incorrect.
 
-    Parameters
-    ----------
-        f : function from n-scalars to 1-scalar.
-        *scalars  : n input scalar values.
+    Args:
+    ----
+        f: function from n-scalars to 1-scalar.
+        *scalars: n input scalar values.
 
     """
     out = f(*scalars)

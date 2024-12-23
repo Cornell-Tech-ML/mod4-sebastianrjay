@@ -30,12 +30,16 @@ class Module:
         return list(m.values())
 
     def train(self) -> None:
-        """Set the mode of this module and all descendent modules to `train`."""
-        raise NotImplementedError("Need to include this file from past assignment.")
+        """Set the `training` flag of this and descendent to true."""
+        for desc in self._modules.values():
+            desc.train()
+        self.training = True
 
     def eval(self) -> None:
-        """Set the mode of this module and all descendent modules to `eval`."""
-        raise NotImplementedError("Need to include this file from past assignment.")
+        """Set the `training` flag of this and descendent to false."""
+        for desc in self._modules.values():
+            desc.eval()
+        self.training = False
 
     def named_parameters(self) -> Sequence[Tuple[str, Parameter]]:
         """Collect all the parameters of this module and its descendents.
@@ -45,11 +49,18 @@ class Module:
             The name and `Parameter` of each ancestor parameter.
 
         """
-        raise NotImplementedError("Need to include this file from past assignment.")
+        parameters = {}
+        for k, v in self._parameters.items():
+            parameters[k] = v
+
+        for mod_name, m in self._modules.items():
+            for k, v in m.named_parameters():
+                parameters[f"{mod_name}.{k}"] = v
+        return list(parameters.items())
 
     def parameters(self) -> Sequence[Parameter]:
         """Enumerate over all the parameters of this module and its descendents."""
-        raise NotImplementedError("Need to include this file from past assignment.")
+        return [j for _, j in self.named_parameters()]
 
     def add_parameter(self, k: str, v: Any) -> Parameter:
         """Manually add a parameter. Useful helper for scalar parameters.
@@ -85,6 +96,7 @@ class Module:
         return None
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """Invoked when an instance of this class is called as a function."""
         return self.forward(*args, **kwargs)
 
     def __repr__(self) -> str:
@@ -137,6 +149,18 @@ class Parameter:
             self.value.requires_grad_(True)
             if self.name:
                 self.value.name = self.name
+
+    def requires_grad_(self, x: bool) -> None:
+        """Set the requires_grad flag of the value."""
+        self.value.requires_grad_(x)
+
+    def detach(self) -> "Parameter":
+        """Detach the value from the computation graph."""
+        return Parameter(self.value.detach())
+
+    def requires_grad(self) -> bool:
+        """Get the requires_grad flag of the value."""
+        return self.value.requires_grad()
 
     def __repr__(self) -> str:
         return repr(self.value)
