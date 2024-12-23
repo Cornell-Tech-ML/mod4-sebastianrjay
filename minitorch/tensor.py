@@ -95,9 +95,11 @@ class Tensor:
         self.f = backend
 
     def requires_grad_(self, x: bool) -> None:
+        """A function."""
         self.history = History()
 
     def requires_grad(self) -> bool:
+        """A function."""
         return self.history is not None
 
     def to_numpy(self) -> npt.NDArray[np.float64]:
@@ -130,20 +132,24 @@ class Tensor:
         return self._tensor.to_string()
 
     def __getitem__(self, key: Union[int, UserIndex]) -> float:
+        """A function."""
         key2 = (key,) if isinstance(key, int) else key
         return self._tensor.get(key2)
 
     def __setitem__(self, key: Union[int, UserIndex], val: float) -> None:
+        """A function."""
         key2 = (key,) if isinstance(key, int) else key
         self._tensor.set(key2, val)
 
     # Internal methods used for autodiff.
     def _type_(self, backend: TensorBackend) -> None:
+        """A function."""
         self.backend = backend
         if backend.cuda:  # pragma: no cover
             self._tensor.to_cuda_()
 
     def _new(self, tensor_data: TensorData) -> Tensor:
+        """A function."""
         return Tensor(tensor_data, backend=self.backend)
 
     @staticmethod
@@ -194,6 +200,8 @@ class Tensor:
         # END CODE CHANGE (2021)
 
     def zeros(self, shape: Optional[UserShape] = None) -> Tensor:
+        """A function."""
+
         def zero(shape: UserShape) -> Tensor:
             return Tensor.make(
                 [0.0] * int(operators.prod(shape)), shape, backend=self.backend
@@ -239,14 +247,27 @@ class Tensor:
         return self.history is not None and self.history.last_fn is None
 
     def is_constant(self) -> bool:
+        """A function."""
         return self.history is None
 
     @property
+    def dims(self) -> int:
+        """Dims"""
+        return self._tensor.dims
+
+    @property
+    def size(self) -> int:
+        """Size"""
+        return self._tensor.size
+
+    @property
     def parents(self) -> Iterable[Variable]:
+        """A function."""
         assert self.history is not None
         return self.history.inputs
 
     def chain_rule(self, d_output: Any) -> Iterable[Tuple[Variable, Any]]:
+        """A function."""
         h = self.history
         assert h is not None
         assert h.last_fn is not None
@@ -260,15 +281,18 @@ class Tensor:
         ]
 
     def backward(self, grad_output: Optional[Tensor] = None) -> None:
+        """A function."""
         if grad_output is None:
             assert self.shape == (1,), "Must provide grad_output if non-scalar"
             grad_output = Tensor.make([1.0], (1,), backend=self.backend)
         backpropagate(self, grad_output)
 
     def __truediv__(self, b: TensorLike) -> Tensor:
+        """A function."""
         return Mul.apply(self, Inv.apply(self._ensure_tensor(b)))
 
     def __rtruediv__(self, b: TensorLike) -> Tensor:
+        """A function."""
         return Mul.apply(self._ensure_tensor(b), Inv.apply(self))
 
     def __matmul__(self, b: Tensor) -> Tensor:
@@ -284,4 +308,91 @@ class Tensor:
         return self._tensor.shape
 
     # Functions
-    raise NotImplementedError("Need to include this file from past assignment.")
+    def __add__(self, b: TensorLike) -> Tensor:
+        """A function."""
+        return Add.apply(self, self._ensure_tensor(b))
+
+    def __sub__(self, b: TensorLike) -> Tensor:
+        """A function."""
+        return Add.apply(self, -self._ensure_tensor(b))
+
+    def __mul__(self, b: TensorLike) -> Tensor:
+        """A function."""
+        return Mul.apply(self, self._ensure_tensor(b))
+
+    def __lt__(self, b: TensorLike) -> Tensor:
+        """A function."""
+        return LT.apply(self, self._ensure_tensor(b))
+
+    def __eq__(self, b: TensorLike) -> Tensor:
+        """A function."""
+        return EQ.apply(self, self._ensure_tensor(b))
+
+    def __gt__(self, b: TensorLike) -> Tensor:
+        """A function."""
+        return LT.apply(self._ensure_tensor(b), self)
+
+    def __neg__(self) -> Tensor:
+        """A function."""
+        return Neg.apply(self)
+
+    def __radd__(self, b: TensorLike) -> Tensor:
+        """A function."""
+        return self + b
+
+    def __rmul__(self, b: TensorLike) -> Tensor:
+        """A function."""
+        return self * b
+
+    def all(self, dim: Optional[int] = None) -> Tensor:
+        """A function."""
+        if dim is None:
+            return All.apply(self.view(self.size), self._ensure_tensor(0))
+        else:
+            return All.apply(self, self._ensure_tensor(dim))
+
+    def is_close(self, y: Tensor) -> Tensor:
+        """A function."""
+        return IsClose.apply(self, y)
+
+    def sigmoid(self) -> Tensor:
+        """A function."""
+        return Sigmoid.apply(self)
+
+    def relu(self) -> Tensor:
+        """A function."""
+        return ReLU.apply(self)
+
+    def log(self) -> Tensor:
+        """A function."""
+        return Log.apply(self)
+
+    def exp(self) -> Tensor:
+        """A function."""
+        return Exp.apply(self)
+
+    def sum(self, dim: Optional[int] = None) -> Tensor:
+        """A function."""
+        if dim is None:
+            return Sum.apply(self.contiguous().view(self.size), self._ensure_tensor(0))
+        else:
+            return Sum.apply(self, self._ensure_tensor(dim))
+
+    def mean(self, dim: Optional[int] = None) -> Tensor:
+        """A function."""
+        if dim is not None:
+            return self.sum(dim) / self.shape[dim]
+        else:
+            return self.sum() / self.size
+
+    def permute(self, *order: int) -> Tensor:
+        """A function."""
+        return Permute.apply(self, tensor(list(order)))
+
+    def view(self, *shape: int) -> Tensor:
+        """A function."""
+        return View.apply(self, tensor(list(shape)))
+
+    def zero_grad_(self) -> None:
+        """A function."""
+        self.grad = None
