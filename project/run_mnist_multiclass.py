@@ -66,12 +66,14 @@ class Network(minitorch.Module):
         # For vis
         self.mid = None
         self.out = None
+        self.dropout = 0.25
 
         # TODO: Implement for Task 4.5.
         self.conv1 = Conv2d(1,4,3,3)
         self.conv2 = Conv2d(4,8,3,3)
         self.linear1 = Linear(392, 64)
         self.linear2 = Linear(64, C)
+
 
     def forward(self, x):
         # TODO: Implement for Task 4.5.
