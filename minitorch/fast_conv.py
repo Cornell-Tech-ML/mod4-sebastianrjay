@@ -1,10 +1,13 @@
 from typing import Tuple, TypeVar, Any
 
+import numpy as np
 from numba import njit as _njit
+from numba import prange
 
 from .autodiff import Context
 from .tensor import Tensor
 from .tensor_data import (
+    MAX_DIMS,
     Shape,
     Strides,
     Storage,
@@ -87,7 +90,28 @@ def _tensor_conv1d(
     s2 = weight_strides
 
     # TODO: Implement for Task 4.1.
-    raise NotImplementedError("Need to implement for Task 4.1")
+    for i in prange(out_size):
+        out_index = np.zeros(MAX_DIMS, dtype=np.int32)
+        to_index(i, out_shape, out_index)
+        batch_index, out_channel, out_width = out_index[0], out_index[1], out_index[2]
+        out_pos = index_to_position(out_index, out_strides)
+
+        total = 0.0
+
+        for in_channel in prange(in_channels):
+            for offset in prange(kw):
+                in_width = out_width - offset if reverse else out_width + offset
+                if in_width < 0 or in_width >= width:
+                    continue
+                
+                # get input tensor pos from batch idx, input channel, and width
+                in_pos = batch_index * s1[0] + in_channel * s1[1] + in_width * s1[2]
+
+                # using strides, get weight pos from out channel, input channel, and offset
+                weight_pos = out_channel * s2[0] + in_channel * s2[1] + offset * s2[2]
+                total += input[in_pos] * weight[weight_pos]
+            
+        out[out_pos] = total
 
 
 tensor_conv1d = njit(_tensor_conv1d, parallel=True)
