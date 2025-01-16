@@ -21,6 +21,7 @@ Fn = TypeVar("Fn")
 
 
 def njit(fn: Fn, **kwargs: Any) -> Fn:
+    """A function."""
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
 
 
@@ -103,14 +104,14 @@ def _tensor_conv1d(
                 in_width = out_width - offset if reverse else out_width + offset
                 if in_width < 0 or in_width >= width:
                     continue
-                
+
                 # get input tensor pos from batch idx, input channel, and width
                 in_pos = batch_index * s1[0] + in_channel * s1[1] + in_width * s1[2]
 
                 # using strides, get weight pos from out channel, input channel, and offset
                 weight_pos = out_channel * s2[0] + in_channel * s2[1] + offset * s2[2]
                 total += input[in_pos] * weight[weight_pos]
-            
+
         out[out_pos] = total
 
 
@@ -147,6 +148,7 @@ class Conv1dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """A function."""
         input, weight = ctx.saved_values
         batch, in_channels, w = input.shape
         out_channels, in_channels, kw = weight.shape
@@ -240,7 +242,51 @@ def _tensor_conv2d(
     s20, s21, s22, s23 = s2[0], s2[1], s2[2], s2[3]
 
     # TODO: Implement for Task 4.2.
-    raise NotImplementedError("Need to implement for Task 4.2")
+    for i in prange(out_size):
+        out_index = np.zeros(MAX_DIMS, dtype=np.int32)
+        to_index(i, out_shape, out_index)
+        batch_index, out_channel, out_height, out_width = (
+            out_index[0],
+            out_index[1],
+            out_index[2],
+            out_index[3],
+        )
+
+        total = 0.0
+
+        for in_channel in prange(in_channels):
+            for offset_h in prange(kh):
+                for offset_w in prange(kw):
+                    in_height = (
+                        out_height - offset_h if reverse else out_height + offset_h
+                    )
+                    in_width = out_width - offset_w if reverse else out_width + offset_w
+                    if (
+                        in_height < 0
+                        or in_height >= height
+                        or in_width < 0
+                        or in_width >= width
+                    ):
+                        continue
+
+                    # get input tensor pos from batch idx, input channel, and width
+                    in_pos = (
+                        batch_index * s10
+                        + in_channel * s11
+                        + in_height * s12
+                        + in_width * s13
+                    )
+
+                    # using strides, get weight pos from out channel, input channel, and offsets
+                    weight_pos = (
+                        out_channel * s20
+                        + in_channel * s21
+                        + offset_h * s22
+                        + offset_w * s23
+                    )
+                    total += input[in_pos] * weight[weight_pos]
+
+        out[i] = total
 
 
 tensor_conv2d = njit(_tensor_conv2d, parallel=True, fastmath=True)
@@ -274,6 +320,7 @@ class Conv2dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """A function."""
         input, weight = ctx.saved_values
         batch, in_channels, h, w = input.shape
         out_channels, in_channels, kh, kw = weight.shape
