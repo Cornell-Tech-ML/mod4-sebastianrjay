@@ -73,7 +73,7 @@ def is_close(a: float, b: float) -> bool:
     """Return True if the absolute difference between a and b is <1E-2; return
     False otherwise.
     """
-    return (a - b < 1e-2) and (b - a < 1e-2)
+    return ((a - b) < 1e-2) and ((b - a) < 1e-2)
 
 
 #
